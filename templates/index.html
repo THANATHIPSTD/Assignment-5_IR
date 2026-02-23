@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if query %}Split Search - {{ query }}{% else %}Google Clone{% endif %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+
+        .home-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .logo { font-size: 80px; font-weight: bold; margin-bottom: 20px; }
+        .logo span:nth-child(1) { color: #4285F4; }
+        .logo span:nth-child(2) { color: #EA4335; }
+        .logo span:nth-child(3) { color: #FBBC05; }
+        .logo span:nth-child(4) { color: #4285F4; }
+        .logo span:nth-child(5) { color: #34A853; }
+        .logo span:nth-child(6) { color: #EA4335; }
+        .home-search { width: 500px; padding: 12px 20px; border: 1px solid #dfe1e5; border-radius: 24px; font-size: 16px; outline: none; }
+        .home-search:hover { box-shadow: 0 1px 6px rgba(32,33,36,.28); }
+        .buttons { margin-top: 20px; text-align: center; }
+        .buttons button { background-color: #f8f9fa; border: 1px solid #f8f9fa; border-radius: 4px; color: #3c4043; padding: 10px 20px; margin: 0 5px; cursor: pointer; }
+        .buttons button:hover { border: 1px solid #dadce0; color: #202124; }
+
+        .header { padding: 20px; border-bottom: 1px solid #ebebeb; background: #f8f9fa; }
+        .split-search { width: 400px; padding: 10px; border-radius: 24px; border: 1px solid #dfe1e5; margin-left: 20px; }
+        .container { display: flex; width: 100%; height: calc(100vh - 80px); }
+        .column { flex: 1; padding: 20px; overflow-y: auto; }
+        .left-col { border-right: 1px solid #ebebeb; }
+        h2 { font-size: 18px; color: #333; margin-top: 0; text-align: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; }
+        .stats { font-size: 14px; color: #70757a; margin-bottom: 15px; }
+        .result-item { margin-bottom: 25px; }
+        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: block; margin-bottom: 2px; }
+        .result-url { font-size: 14px; color: #202124; text-decoration: none; display: block; margin-bottom: 2px; }
+        .snippet { font-size: 14px; color: #4d5156; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+    {% if query %}
+        <div class="header">
+            <a href="/" style="text-decoration: none; color: inherit;"><b style="font-size: 24px;">SplitSearch</b></a>
+            <form action="/" method="GET" style="display:inline;">
+                <input type="text" name="q" class="split-search" value="{{ query }}">
+            </form>
+        </div>
+
+        <div class="container">
+            <div class="column left-col">
+                <h2>Elasticsearch BM25 + PageRank</h2>
+                <div id="bm25-stats" class="stats">Loading...</div>
+                <div id="bm25-results"></div>
+            </div>
+
+            <div class="column right-col">
+                <h2>Custom TF-IDF + PageRank</h2>
+                <div id="tfidf-stats" class="stats">Loading...</div>
+                <div id="tfidf-results"></div>
+            </div>
+        </div>
+
+        <script>
+            // ใช้ JavaScript ยิง API ไปดึงข้อมูลมาแปะบนหน้าเว็บ
+            const query = "{{ query }}";
+
+            function renderResults(data, containerId, statsId) {
+                document.getElementById(statsId).innerHTML = `About ${data.total_hit} results (${data.elapse} seconds)`;
+
+                let html = "";
+                data.results.forEach(item => {
+                    html += `
+                        <div class="result-item">
+                            <a href="${item.url}" class="result-url" target="_blank">${item.url}</a>
+                            <a href="${item.url}" class="result-title" target="_blank">${item.title}</a>
+                            <div class="snippet">${item.text}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById(containerId).innerHTML = html;
+            }
+
+            if (query) {
+                fetch(`/api/search_bm25?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => renderResults(data, 'bm25-results', 'bm25-stats'));
+
+                fetch(`/api/search_tfidf?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => renderResults(data, 'tfidf-results', 'tfidf-stats'));
+            }
+        </script>
+
+    {% else %}
+        <div class="home-wrapper">
+            <div class="logo">
+                <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+            </div>
+            <form action="/" method="GET">
+                <input type="text" name="q" class="home-search" autofocus required>
+
+            </form>
+        </div>
+    {% endif %}
+
+</body>
+</html>
